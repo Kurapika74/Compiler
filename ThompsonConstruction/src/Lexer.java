@@ -1,249 +1,287 @@
-
+/*Éè¼ÆÕıÔò±í´ïÊ½µÄ´Ê·¨·ÖÎöÆ÷£¬¶ÁÈë×Ö·û²¢ÇÒ·µ»ØÏàÓ¦±êÇ©*/
 public class Lexer {
-    public enum Token {
-    	EOS, //æ­£åˆ™è¡¨è¾¾å¼æœ«å°¾
-    	ANY,     // . é€šé…ç¬¦
-    	AT_BOL,  //^ å¼€å¤´åŒ¹é…ç¬¦
-    	AT_EOL,  //$ æœ«å°¾åŒ¹é…ç¬¦
-    	CCL_END,  //å­—ç¬¦é›†ç±»ç»“å°¾æ‹¬å· ]
-    	CCL_START,  //å­—ç¬¦é›†ç±»å¼€å§‹æ‹¬å· [
-    	CLOSE_CURLY, // }
-    	CLOSE_PAREN,  //)
-    	CLOSURE,      //*
-    	DASH,       // -
-    	END_OF_INPUT,  //è¾“å…¥æµç»“æŸ
-    	L,        //å­—ç¬¦å¸¸é‡
-    	OPEN_CURLY, // {
-    	OPEN_PAREN, // (
-    	OPTIONAL,  //? 
-    	OR,       // |
-    	PLUS_CLOSE
-    };
-    
-    private final int ASCII_COUNT = 128;
-    private Token[] tokenMap = new Token[ASCII_COUNT];
-    private Token currentToken = Token.EOS;
-    RegularExpressionHandler exprHandler = null;
-    private int exprCount = 0;
-    private String curExpr = "";
-    private int charIndex = 0;
-    private boolean inQuoted = false; //æ˜¯å¦åœ¨åŒå¼•å·å†…
-    private boolean sawEsc = false;  //æ˜¯å¦è¯»å–åˆ°è½¬ç§»ç¬¦ /
-    private int lexeme ;
-    
-    public Lexer(RegularExpressionHandler exprHandler) {
-    	initTokenMap();
-    	this.exprHandler = exprHandler;
-    }
-    
-    private void initTokenMap() {
-    	for (int i = 0; i < ASCII_COUNT; i++) {
-    		tokenMap[i] = Token.L;
-    	}
-    	
-        tokenMap['.'] = Token.ANY;
-        tokenMap['^'] = Token.AT_BOL;
-        tokenMap['$'] = Token.AT_EOL;
-        tokenMap[']'] = Token.CCL_END;
-        tokenMap['['] = Token.CCL_START;
-        tokenMap['}'] = Token.CLOSE_CURLY;
-        tokenMap[')'] = Token.CLOSE_PAREN;
-        tokenMap['*'] = Token.CLOSURE;
-        tokenMap['-'] = Token.DASH;
-        tokenMap['{'] = Token.OPEN_CURLY;
-        tokenMap['('] = Token.OPEN_PAREN;
-        tokenMap['?'] = Token.OPTIONAL;
-        tokenMap['|'] = Token.OR;
-        tokenMap['+'] = Token.PLUS_CLOSE; 
-    }
-    
-    public boolean MatchToken(Token t) {
-    	return currentToken == t;
-    }
-    
-    public int getLexeme() {
-    	return lexeme;
-    }
-    
-    public String getCurExpr() {
-    	return curExpr;
-    }
-    
-    public Token advance() {
-    	if (currentToken == Token.EOS) {
-    		//ä¸€ä¸ªæ­£åˆ™è¡¨è¾¾å¼è§£æç»“æŸåè¯»å…¥ä¸‹ä¸€ä¸ªè¡¨è¾¾å¼
-    		if (exprCount >= exprHandler.getRegularExpressionCount()) {
-    			//æ‰€æœ‰æ­£åˆ™è¡¨è¾¾å¼éƒ½è§£æå®Œæ¯•
-    			currentToken = Token.END_OF_INPUT;
-    			return currentToken;
-    		}
-    		else {
-    			curExpr = exprHandler.getRegularExpression(exprCount);
-    			exprCount++;
-    		}
-    	}
-    	
-    	if (charIndex >= curExpr.length()) {
-    		currentToken = Token.EOS;
-    		charIndex = 0;
-			return currentToken; 
-    	}
-    	
-    	if (curExpr.charAt(charIndex) == '"') {
-    		inQuoted = !inQuoted;
-    		charIndex++;
-    	}
-    	
-    	sawEsc = (curExpr.charAt(charIndex) == '\\');
-    	if (sawEsc && curExpr.charAt(charIndex + 1) != '"' && inQuoted == false) {
-    		lexeme = handleEsc();
-    	}
-    	else {
-    		if (sawEsc && curExpr.charAt(charIndex + 1) == '"') {
-    			charIndex += 2;
-    			lexeme = '"';
-    		}
-    		else {
-    			lexeme = curExpr.charAt(charIndex);
-    			charIndex++;
-    		}
-    	}
-    	
-    	currentToken = (inQuoted || sawEsc) ? Token.L : tokenMap[lexeme];
-    	
-    	return currentToken;
-    }
-    
-    private int handleEsc() {
-    	/*å½“è½¬ç§»ç¬¦ \ å­˜åœ¨æ—¶ï¼Œå®ƒå¿…é¡»ä¸è·Ÿåœ¨å®ƒåé¢çš„å­—ç¬¦æˆ–å­—ç¬¦ä¸²ä¸€èµ·è§£è¯»
-    	 *æˆ‘ä»¬å¤„ç†çš„è½¬ä¹‰å­—ç¬¦æœ‰ä»¥ä¸‹å‡ ç§å½¢å¼
-    	 * \b backspace
+
+	//EnumÒ»°ãÓÃÀ´±íÊ¾Ò»×éÏàÍ¬ÀàĞÍµÄ³£Á¿
+	public enum Token{
+	EOS,  //ÕıÔò±í´ïÊ½Ä©Î²£¬±íÊ¾ÒÑ·ÖÎöÍê±Ï¡£
+	ANY, //.Í¨Åä·û
+	AT_BOL,   // ^¿ªÍ·Æ¥Åä·û
+	AT_EOL,  // $Ä©Î²Æ¥Åä·û
+   CCL_START, //×Ö·û¼¯¿ªÊ¼À¨ºÅ[
+	CCL_END, // ×Ö·û¼¯Àà½áÎ²À¨ºÅ ]
+	CLOSE_CURLY, //   }
+	CLOSE_PAREN,//    )
+	CLOSURE,    //   *
+	DASH, //   -
+	END_OF_INPUT, //ÊäÈëÁ÷½è½áÊø
+	L,    //×Ö·û³£Á¿
+	
+	OPEN_CURLY,  //{
+	OPEN_PAREN,  //(
+	OPTIONAL,   // ?
+	OR, //  |
+	PLUS_CLOSE
+			
+	};
+	
+	
+	private final int ASCII_COUNT=128;//Ò»¸öÃ¶¾ÙÀàĞÍµÄÊı×é£¿£¿³¤¶È128£¿
+	private Token[] tokenMap=new Token[ASCII_COUNT];
+	private Token currentToken = Token.EOS; //¸³Öµ
+
+	RegularExpressionHandler exprHandler=null;
+	
+	private int exprCount = 0;
+	private String curExpr = "";//×Ö·û´®
+	private int charIndex = 0;//±íÊ¾½âÎö×Ö·û´®ÔÚÕıÔò±í´ïÊ½×Ö·û´®ÖĞµÄÏÂ±ê
+	private  boolean inQuoted = false;//ÊÇ·ñÔÚË«ÒıºÅÄÚ
+	private boolean sawEsc =false; //ÊÇ·ñ¶ÁÈ¡µ½×ªÒÆ·û/
+	private int lexeme;
+	
+	//¹¹Ôì·½·¨
+	public Lexer(RegularExpressionHandler exprHandler) {
+		initTokenMap();
+		this.exprHandler = exprHandler; //ÕâÀï¸³Öµ
+		
+	}	
+		
+	private void initTokenMap() {
+		for(int i =0;i<ASCII_COUNT;i++) {
+             tokenMap[i]=Token.L;
+      //ÔÚ¿ªÊ¼µÄÊ±ºòÄ¬ÈÏÃ¿Ò»¸ö×Ö·ûÃ¿Ò»¸ö±êÇ©¶¼ÊÇ×Ö·û³£Á¿L		
+		
+		}
+	
+	     //ÔÚÕâÀï²éÕÒ¶ÁÈë×Ö·û¶ÔÓ¦µÄ±êÇ©¡£tokenmap¶ÁÈëºóÈ»ºó¸³³£Á¿¡£
+		    tokenMap['.'] = Token.ANY;//Èç¹ûÊÇµã£¬¸³ÖµÎªToken.ANY
+	        tokenMap['^'] = Token.AT_BOL;
+	        tokenMap['$'] = Token.AT_EOL;
+	        tokenMap[']'] = Token.CCL_END;
+	        tokenMap['['] = Token.CCL_START;
+	        tokenMap['}'] = Token.CLOSE_CURLY;
+	        tokenMap[')'] = Token.CLOSE_PAREN;
+	        tokenMap['*'] = Token.CLOSURE;
+	        tokenMap['-'] = Token.DASH;
+	        tokenMap['{'] = Token.OPEN_CURLY;
+	        tokenMap['('] = Token.OPEN_PAREN;
+	        tokenMap['?'] = Token.OPTIONAL;
+	        tokenMap['|'] = Token.OR;
+	        tokenMap['+'] = Token.PLUS_CLOSE; 
+		
+	}
+	 
+	
+ /*advance½Ó¿ÚÓÃÀ´¶ÁÈë×Ö·û²¢ÇÒ·µ»Ø¶ÔÓ¦µÄ±êÇ©¡£
+  ÔÚ½Ó¿ÚÖĞÎÒÃÇÏÈÍ¨¹ıexprHander»ñµÃÒÑ¾­´¦ÀíºÃµÄÕıÔò±í´ïÊ½×Ö·û´®£¬ÒÀ´Î´ÓÒÔ»ñÈ¡ºÃµÄÖĞÈ¡³ö£¬
+  ²¢Öğ¸ö½âÎö
+  * 
+  * 
+	*/
+	public Token advance() {
+//ÉèÖÃÎªEOS,¿ªÊ¼»ñÈ¡ÕıÔò±í´ïÊ½£¬Èç([0-9]+)Õâ¸ö´ÓexprHandlerÄÃµ½µÄ±»ºê¶¨Òå´¦ÀíºÃµÄ±í´ïÊ½
+	if(currentToken ==Token.EOS) {
+	//2 Èç¹ûµ±Ç°±êÇ©ÊÇEOS,Ò»¸öÕıÔò±í´ïÊ½½âÎö½áÊøºó¶ÁÈëÏÂÒ»¸ö±í´ïÊ½
+    if (exprCount >= exprHandler.getRegularExpressionCount()) {
+	//ËùÓĞÕıÔò±í´ïÊ½½âÎöÍê³É 
+	currentToken=Token.END_OF_INPUT;//END_OF_INPUT ÊäÈëÁ÷½è½áÊø
+	        return currentToken;
+        }else {
+        	curExpr = exprHandler.getRegularExpression(exprCount);//¸³Öµ
+			exprCount++;
+        }
+	}
+	// 1 µ±×Ö·ûÏÂ±ê>×Ö·û´®±í´ïÊ½³¤¶ÈÊ±£¬±íÊ¾µ±Ç°×Ö·û´®½âÎöÍê±Ï
+	if (charIndex >= curExpr.length()) {
+		currentToken = Token.EOS;
+		charIndex = 0;
+		return currentToken; 
+	}
+		
+//Óöµ½Ë«ÒıºÅ×ö±ê¼Ç ¡£ charAt£¨) ·½·¨¿É·µ»ØÖ¸¶¨Î»ÖÃµÄ×Ö·û,µÚÒ»¸ö×Ö·ûÎ»ÖÃÎª 0, µÚ¶ş¸ö×Ö·ûÎ»ÖÃÎª 1,ÒÔ´ËÀàÍÆ.Èç¡®abc¡¯×Ö·û´®,aµÄÏÂ±êÊÇ0£¬b1£¬c3
+	
+	if (curExpr.charAt(charIndex) == '"') {
+		inQuoted = !inQuoted; //false-true-flase Ñ­»·¹ı³Ì
+		charIndex++;
+	}
+	
+
+
+	sawEsc = (curExpr.charAt(charIndex) == '\\'); //µ±Ç°±»½âÎö×Ö·û´®µÄÏÂ±êÓëËüºóÃæÒ»¸ö(ºóÒ»¸öÊÇ²»ÊÇ'ÒıºÅ£¬²»ÊÇ¾Í½«Á½¸öÁ¬ÔÚÒ»Æğ
+	if (sawEsc && curExpr.charAt(charIndex + 1) != '"' && inQuoted == false) {
+		lexeme = handleEsc();
+	}
+	else {
+		if (sawEsc && curExpr.charAt(charIndex + 1) == '"') {
+			charIndex += 2;
+			lexeme = '"';
+		}
+		else {
+			lexeme = curExpr.charAt(charIndex);
+			charIndex++;//µÃµ½¶ÔÓ¦µÄasciiÖµ
+		}
+	}
+	
+	//µ±Ç°½âÎö×Ö·ûÊÇ·ñÔÚË«ÒıºÅÄÚ»òÇ°ÃæÊÇ×ªÒå·û¡ª¡ª¶¼±»µ±³ÉÆÕÍ¨×Ö·û´¦Àí(·µ»ØL)£¬²»È»¾ÍÔÚtokenMapÑ°ÕÒÏà¶ÔÓ¦µÄ±êÇ©Öµ
+	currentToken = (inQuoted || sawEsc) ? Token.L : tokenMap[lexeme]; //lexeme´æ´¢µÄÊÇµ±Ç°×Ö·ûµÄÖµ
+	
+	return currentToken;
+
+	}
+  //È»ºóÌøµ½ThompsonConstruction µÄ·½·¨ÖĞ£¬ÈçpritlnResult´òÓ¡½á¹û/
+
+	
+	
+  //Óöµ½·´Ğ±¸ÜÌØÊâ´¦Àí£¬¶Ô×ªÒå×Ö·ûÌØË×´¦ÀíµÄº¯Êı£ºhandleEsc
+	
+	private int handleEsc() {
+    	/*µ±×ªÒÆ·û \ ´æÔÚÊ±£¬Ëü±ØĞëÓë¸úÔÚËüºóÃæµÄ×Ö·û»ò×Ö·û´®Ò»Æğ½â¶Á
+    	 *ÎÒÃÇ´¦ÀíµÄ×ªÒå×Ö·ûÓĞÒÔÏÂ¼¸ÖÖĞÎÊ½
+    	 * \b backspace É¾³ı
     	 * \f formfeed
-    	 * \n newline
-    	 * \r carriage return å›è½¦
-    	 * \s space ç©ºæ ¼
+    	 * \n newline »»ĞĞ
+    	 * \r carriage return »Ø³µ
+    	 * \s space ¿Õ¸ñ
     	 * \t tab
     	 * \e ASCII ESC ('\033')
-    	 * \DDD 3ä½å…«è¿›åˆ¶æ•°
-    	 * \xDDD 3ä½åå…­è¿›åˆ¶æ•°
-    	 * \^C Cæ˜¯ä»»ä½•å­—ç¬¦ï¼Œ ä¾‹å¦‚^A, ^B åœ¨Ascii è¡¨ä¸­éƒ½æœ‰å¯¹åº”çš„ç‰¹æ®Šå«ä¹‰
-    	 * ASCII å­—ç¬¦è¡¨å‚è§ï¼š
+    	 * \DDD 3Î»°Ë½øÖÆÊı
+    	 * \xDDD 3Î»Ê®Áù½øÖÆÊı
+    	 * \^C CÊÇÈÎºÎ×Ö·û£¬ ÀıÈç^A, ^B ÔÚAscii ±íÖĞ¶¼ÓĞ¶ÔÓ¦µÄÌØÊâº¬Òå
+    	 * ASCII ×Ö·û±í²Î¼û£º
     	 * http://baike.baidu.com/pic/%E7%BE%8E%E5%9B%BD%E4%BF%A1%E6%81%AF%E4%BA%A4%E6%8D%A2%E6%A0%87%E5%87%86%E4%BB%A3%E7%A0%81/8950990/0/9213b07eca8065387d4c671896dda144ad348213?fr=lemma&ct=single#aid=0&pic=9213b07eca8065387d4c671896dda144ad348213
     	 */
-    	
-    	int rval = 0;
-    	String exprToUpper = curExpr.toUpperCase();
-    	charIndex++; //è¶Šè¿‡è½¬ç§»ç¬¦ \
-    	switch (exprToUpper.charAt(charIndex)) {
-    	case '\0' : 
-    		  rval = '\\'; 
-    		  break;
-    	case 'B': 
-    		  rval = '\b';
-    		  break;
-    	case 'F':
-    		  rval = '\f';
-    		  break;
-    	case 'N' :
-    		  rval = '\n';
-    		  break;
-    	case 'R' :
-    		  rval = '\r';
-    		  break;
-    	case 'S':
-    		  rval = ' ';
-    		  break;
-    	case 'T':
-    		  rval = '\t';
-    		  break;
-    	case 'E' :
-    		  rval = '\033';
-    		  break;
-    	case '^':
-    		  charIndex++;
-    		  /*
-    		   * å› æ­¤å½“é‡åˆ°^åé¢è·Ÿåœ¨ä¸€ä¸ªå­—æ¯æ—¶ï¼Œè¡¨ç¤ºè¯»å…¥çš„æ˜¯æ§åˆ¶å­—ç¬¦
-    		   * ^@ åœ¨ASCII è¡¨ä¸­çš„æ•°å€¼ä¸º0ï¼Œ^A ä¸º1, å­—ç¬¦@åœ¨ASCII è¡¨ä¸­æ•°å€¼ä¸º80ï¼Œ å­—ç¬¦Aåœ¨ASCIIè¡¨ä¸­æ•°å€¼ä¸º81
-    		   * 'A' - '@' ç­‰äº1 å°±å¯¹åº” ^A åœ¨ ASCII è¡¨ä¸­çš„ä½ç½®
-    		   * å…·ä½“å¯å‚çœ‹æ³¨é‡Šç»™å‡ºçš„ASCII å›¾
-    		   * 
-    		   */
-    		  rval = (char) (curExpr.charAt(charIndex) - '@');
-    		  break;
-    	case 'X':
-    		/*
-    		 * \X è¡¨ç¤ºåé¢è·Ÿç€çš„ä¸‰ä¸ªå­—ç¬¦è¡¨ç¤ºå…«è¿›åˆ¶æˆ–åå…­è¿›åˆ¶æ•°
-    		 */
-    		charIndex++; //è¶Šè¿‡X
-    		if (isHexDigit(curExpr.charAt(charIndex))) {
-    			rval = hex2Bin(curExpr.charAt(charIndex));
-    			charIndex++;
-    		}
-    		
-    		if (isHexDigit(curExpr.charAt(charIndex))) {
-    			rval <<= 4;
-    			rval |= hex2Bin(curExpr.charAt(charIndex));
-    			charIndex++;
-    		}
-    		
-    		if (isHexDigit(curExpr.charAt(charIndex))) {
-    			rval <<= 4;
-    			rval |= hex2Bin(curExpr.charAt(charIndex));
-    			charIndex++;
-    		}
-    		charIndex--; //ç”±äºåœ¨å‡½æ•°åº•éƒ¨ä¼šå¯¹charIndex++ æ‰€ä»¥è¿™é‡Œå…ˆ --
-    		break;
-    		
-    		default:
-    			if (isOctDigit(curExpr.charAt(charIndex)) == false) {
-    				rval = curExpr.charAt(charIndex);
-    			}
-    			else {
-    				charIndex++;
-    				rval = oct2Bin(curExpr.charAt(charIndex));
-    				charIndex++;
-    				if (isOctDigit(curExpr.charAt(charIndex))) {
-    					rval <<= 3;
-    					rval |= oct2Bin(curExpr.charAt(charIndex));
-    					charIndex++;
-    				}
-    				
-    				if (isOctDigit(curExpr.charAt(charIndex))) {
-    					rval <<= 3;
-    					rval |= oct2Bin(curExpr.charAt(charIndex));
-    					charIndex++;
-    				}
-    				
-    				charIndex--;//ç”±äºåœ¨å‡½æ•°åº•éƒ¨ä¼šå¯¹charIndex++ æ‰€ä»¥è¿™é‡Œå…ˆ --
-    			}		
-    	}
-    	
-    	charIndex++;
-    	return rval;
-    }
-    
-    private int hex2Bin(char c) {
-    	/*
-    	 * å°†åå…­è¿›åˆ¶æ•°å¯¹åº”çš„å­—ç¬¦è½¬æ¢ä¸ºå¯¹åº”çš„æ•°å€¼ï¼Œä¾‹å¦‚
-    	 * A è½¬æ¢ä¸º10ï¼Œ Bè½¬æ¢ä¸º11
-    	 * å­—ç¬¦c å¿…é¡»æ»¡è¶³åå…­è¿›åˆ¶å­—ç¬¦ï¼š 0123456789ABCDEF
-    	 */
-    	return (Character.isDigit(c) ? (c) - '0' : (Character.toUpperCase(c) - 'A' + 10)) & 0xf;
-    }
-    
-    private int oct2Bin(char c) {
-    	/*
-    	 * å°†å­—ç¬¦c è½¬æ¢ä¸ºå¯¹åº”çš„å…«è¿›åˆ¶æ•°
-    	 * å­—ç¬¦c å¿…é¡»æ˜¯åˆæ³•çš„å…«è¿›åˆ¶å­—ç¬¦: 01234567
-    	 */
-    	return ((c) - '0') & 0x7;
-    }
-    
-    private boolean isHexDigit(char c) {	
-    	return (Character.isDigit(c)|| ('a' <= c && c <= 'f') || ('A' <= c && c <= 'F'));
-    }
-    
-    private boolean isOctDigit(char c) {
-    	return ('0' <= c && c <= '7');
-    }
+	
+  int rval = 0;
+  String exprToUpper=curExpr.toUpperCase();//toUpperCase() ·½·¨ÓÃÓÚ½«Ğ¡Ğ´×Ö·û×ª»»Îª´óĞ´¡£
+  charIndex++; //Ô½¹ı×ªÒÆ·û \	
+  //×Ö·û´®¸ù¾İÏÂ±ê»ñÈ¡µÄ,×ª»»Îª´óĞ´µÄ×Ö·û´®£¬×÷ÎªswitchµÄ±í´ïÊ½
+  switch (exprToUpper.charAt(charIndex)) {
+  case '\0' : 
+	  rval = '\\'; //Ã¿¸öcase±íÊ¾²»Í¬µÄÇé¿ö
+	  break;
+case 'B': 
+	  rval = '\b';//½âÎöµ½B£¬½«'\b'µÄasciiÖµ¸³Öµ¸ørval
+	  break;
+case 'F':
+	  rval = '\f';
+	  break;
+case 'N' :
+	  rval = '\n';  // \n¶ÔÓ¦µÄasciiÖµÎª10 ¸³Öµ¸øN
+	  break;
+case 'R' :
+	  rval = '\r';
+	  break;
+case 'S':
+	  rval = ' ';
+	  break;
+case 'T':
+	  rval = '\t';
+	  break;
+case 'E' :
+	  rval = '\033';
+	  break;
+case '^':
+	  charIndex++;
+	  /*
+	   * Òò´Ëµ±Óöµ½^ºóÃæ¸úÔÚÒ»¸ö×ÖÄ¸Ê±£¬±íÊ¾¶ÁÈëµÄÊÇ¿ØÖÆ×Ö·û
+	   * ^@ ÔÚASCII ±íÖĞµÄÊıÖµÎª0£¬^A Îª1, ×Ö·û@ÔÚASCII ±íÖĞÊıÖµÎª80£¬ ×Ö·ûAÔÚASCII±íÖĞÊıÖµÎª81
+	   * 'A' - '@' µÈÓÚ1 ¾Í¶ÔÓ¦ ^A ÔÚ ASCII ±íÖĞµÄÎ»ÖÃ
+	   * ¾ßÌå¿É²Î¿´×¢ÊÍ¸ø³öµÄASCII Í¼
+	   * 
+	   */
+	  rval = (char) (curExpr.charAt(charIndex) - '@');
+	  break;
+case 'X':
+	/*
+	 * \X ±íÊ¾ºóÃæ¸ú×ÅµÄÈı¸ö×Ö·û±íÊ¾°Ë½øÖÆ»òÊ®Áù½øÖÆÊı
+	 */
+	charIndex++; //Ô½¹ıX
+	if (isHexDigit(curExpr.charAt(charIndex))) {
+		rval = hex2Bin(curExpr.charAt(charIndex));
+		charIndex++;
+	}
+	
+	if (isHexDigit(curExpr.charAt(charIndex))) {
+		rval <<= 4;
+		rval |= hex2Bin(curExpr.charAt(charIndex));
+		charIndex++;
+	}
+	
+	if (isHexDigit(curExpr.charAt(charIndex))) {
+		rval <<= 4;
+		rval |= hex2Bin(curExpr.charAt(charIndex));
+		charIndex++;
+	}
+	charIndex--; //ÓÉÓÚÔÚº¯Êıµ×²¿»á¶ÔcharIndex++ ËùÒÔÕâÀïÏÈ --
+	break;
+	
+	default:
+		if (isOctDigit(curExpr.charAt(charIndex)) == false) {
+			rval = curExpr.charAt(charIndex);
+		}
+		else {
+			charIndex++;
+			rval = oct2Bin(curExpr.charAt(charIndex));
+			charIndex++;
+			if (isOctDigit(curExpr.charAt(charIndex))) {
+				rval <<= 3;
+				rval |= oct2Bin(curExpr.charAt(charIndex));
+				charIndex++;
+			}
+			
+			if (isOctDigit(curExpr.charAt(charIndex))) {
+				rval <<= 3;
+				rval |= oct2Bin(curExpr.charAt(charIndex));
+				charIndex++;
+			}
+			
+			charIndex--;//ÓÉÓÚÔÚº¯Êıµ×²¿»á¶ÔcharIndex++ ËùÒÔÕâÀïÏÈ --
+		}		
+}
+
+charIndex++;
+return rval;
+}
+	  private int hex2Bin(char c) {
+	    	/*
+	    	 * ½«Ê®Áù½øÖÆÊı¶ÔÓ¦µÄ×Ö·û×ª»»Îª¶ÔÓ¦µÄÊıÖµ£¬ÀıÈç
+	    	 * A ×ª»»Îª10£¬ B×ª»»Îª11
+	    	 * ×Ö·ûc ±ØĞëÂú×ãÊ®Áù½øÖÆ×Ö·û£º 0123456789ABCDEF
+	    	 */
+	    	return (Character.isDigit(c) ? (c) - '0' : (Character.toUpperCase(c) - 'A' + 10)) & 0xf;
+	    }
+	    
+	    private int oct2Bin(char c) {
+	    	/*
+	    	 * ½«×Ö·ûc ×ª»»Îª¶ÔÓ¦µÄ°Ë½øÖÆÊı
+	    	 * ×Ö·ûc ±ØĞëÊÇºÏ·¨µÄ°Ë½øÖÆ×Ö·û: 01234567
+	    	 */
+	    	return ((c) - '0') & 0x7;
+	    }
+	    
+	    private boolean isHexDigit(char c) {	
+	    	return (Character.isDigit(c)|| ('a' <= c && c <= 'f') || ('A' <= c && c <= 'F'));
+	    }
+	    
+	    private boolean isOctDigit(char c) {
+	    	return ('0' <= c && c <= '7');
+	    }
+	
+  
+  
+  
+  
+  
+		
+		
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 }
