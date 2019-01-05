@@ -1,20 +1,20 @@
-/*Éè¼ÆÕıÔò±í´ïÊ½µÄ´Ê·¨·ÖÎöÆ÷£¬¶ÁÈë×Ö·û²¢ÇÒ·µ»ØÏàÓ¦±êÇ©*/
+/*è®¾è®¡æ­£åˆ™è¡¨è¾¾å¼çš„è¯æ³•åˆ†æå™¨ï¼Œè¯»å…¥å­—ç¬¦å¹¶ä¸”è¿”å›ç›¸åº”æ ‡ç­¾*/
 public class Lexer {
 
-	//EnumÒ»°ãÓÃÀ´±íÊ¾Ò»×éÏàÍ¬ÀàĞÍµÄ³£Á¿
+	//Enumä¸€èˆ¬ç”¨æ¥è¡¨ç¤ºä¸€ç»„ç›¸åŒç±»å‹çš„å¸¸é‡
 	public enum Token{
-	EOS,  //ÕıÔò±í´ïÊ½Ä©Î²£¬±íÊ¾ÒÑ·ÖÎöÍê±Ï¡£
-	ANY, //.Í¨Åä·û
-	AT_BOL,   // ^¿ªÍ·Æ¥Åä·û
-	AT_EOL,  // $Ä©Î²Æ¥Åä·û
-   CCL_START, //×Ö·û¼¯¿ªÊ¼À¨ºÅ[
-	CCL_END, // ×Ö·û¼¯Àà½áÎ²À¨ºÅ ]
+	EOS,  //æ­£åˆ™è¡¨è¾¾å¼æœ«å°¾ï¼Œè¡¨ç¤ºå·²åˆ†æå®Œæ¯•ã€‚
+	ANY, //.é€šé…ç¬¦
+	AT_BOL,   // ^å¼€å¤´åŒ¹é…ç¬¦
+	AT_EOL,  // $æœ«å°¾åŒ¹é…ç¬¦
+   CCL_START, //å­—ç¬¦é›†å¼€å§‹æ‹¬å·[
+	CCL_END, // å­—ç¬¦é›†ç±»ç»“å°¾æ‹¬å· ]
 	CLOSE_CURLY, //   }
 	CLOSE_PAREN,//    )
 	CLOSURE,    //   *
 	DASH, //   -
-	END_OF_INPUT, //ÊäÈëÁ÷½è½áÊø
-	L,    //×Ö·û³£Á¿
+	END_OF_INPUT, //è¾“å…¥æµç»“æŸ
+	L,    //å­—ç¬¦å¸¸é‡
 	
 	OPEN_CURLY,  //{
 	OPEN_PAREN,  //(
@@ -25,35 +25,35 @@ public class Lexer {
 	};
 	
 	
-	private final int ASCII_COUNT=128;//Ò»¸öÃ¶¾ÙÀàĞÍµÄÊı×é£¿£¿³¤¶È128£¿
+	private final int ASCII_COUNT=128;//ä¸€ä¸ªæšä¸¾ç±»å‹çš„æ•°ç»„ï¼Ÿï¼Ÿé•¿åº¦128ï¼Ÿ
 	private Token[] tokenMap=new Token[ASCII_COUNT];
-	private Token currentToken = Token.EOS; //¸³Öµ
+	private Token currentToken = Token.EOS; //èµ‹å€¼
 
 	RegularExpressionHandler exprHandler=null;
 	
 	private int exprCount = 0;
-	private String curExpr = "";//×Ö·û´®
-	private int charIndex = 0;//±íÊ¾½âÎö×Ö·û´®ÔÚÕıÔò±í´ïÊ½×Ö·û´®ÖĞµÄÏÂ±ê
-	private  boolean inQuoted = false;//ÊÇ·ñÔÚË«ÒıºÅÄÚ
-	private boolean sawEsc =false; //ÊÇ·ñ¶ÁÈ¡µ½×ªÒÆ·û/
+	private String curExpr = "";//å­—ç¬¦ä¸²
+	private int charIndex = 0;//è¡¨ç¤ºè§£æå­—ç¬¦ä¸²åœ¨æ­£åˆ™è¡¨è¾¾å¼å­—ç¬¦ä¸²ä¸­çš„ä¸‹æ ‡
+	private  boolean inQuoted = false;//æ˜¯å¦åœ¨åŒå¼•å·å†…
+	private boolean sawEsc =false; //æ˜¯å¦è¯»å–åˆ°è½¬ç§»ç¬¦/
 	private int lexeme;
 	
-	//¹¹Ôì·½·¨
+	//æ„é€ æ–¹æ³•
 	public Lexer(RegularExpressionHandler exprHandler) {
 		initTokenMap();
-		this.exprHandler = exprHandler; //ÕâÀï¸³Öµ
+		this.exprHandler = exprHandler; //è¿™é‡Œèµ‹å€¼
 		
 	}	
 		
 	private void initTokenMap() {
 		for(int i =0;i<ASCII_COUNT;i++) {
              tokenMap[i]=Token.L;
-      //ÔÚ¿ªÊ¼µÄÊ±ºòÄ¬ÈÏÃ¿Ò»¸ö×Ö·ûÃ¿Ò»¸ö±êÇ©¶¼ÊÇ×Ö·û³£Á¿L		
+      //åœ¨å¼€å§‹çš„æ—¶å€™é»˜è®¤æ¯ä¸€ä¸ªå­—ç¬¦æ¯ä¸€ä¸ªæ ‡ç­¾éƒ½æ˜¯å­—ç¬¦å¸¸é‡L		
 		
 		}
 	
-	     //ÔÚÕâÀï²éÕÒ¶ÁÈë×Ö·û¶ÔÓ¦µÄ±êÇ©¡£tokenmap¶ÁÈëºóÈ»ºó¸³³£Á¿¡£
-		    tokenMap['.'] = Token.ANY;//Èç¹ûÊÇµã£¬¸³ÖµÎªToken.ANY
+	     //åœ¨è¿™é‡ŒæŸ¥æ‰¾è¯»å…¥å­—ç¬¦å¯¹åº”çš„æ ‡ç­¾ã€‚tokenmapè¯»å…¥åç„¶åèµ‹å¸¸é‡ã€‚
+		    tokenMap['.'] = Token.ANY;//å¦‚æœæ˜¯ç‚¹ï¼Œèµ‹å€¼ä¸ºToken.ANY
 	        tokenMap['^'] = Token.AT_BOL;
 	        tokenMap['$'] = Token.AT_EOL;
 	        tokenMap[']'] = Token.CCL_END;
@@ -71,42 +71,42 @@ public class Lexer {
 	}
 	 
 	
- /*advance½Ó¿ÚÓÃÀ´¶ÁÈë×Ö·û²¢ÇÒ·µ»Ø¶ÔÓ¦µÄ±êÇ©¡£
-  ÔÚ½Ó¿ÚÖĞÎÒÃÇÏÈÍ¨¹ıexprHander»ñµÃÒÑ¾­´¦ÀíºÃµÄÕıÔò±í´ïÊ½×Ö·û´®£¬ÒÀ´Î´ÓÒÔ»ñÈ¡ºÃµÄÖĞÈ¡³ö£¬
-  ²¢Öğ¸ö½âÎö
+ /*advanceæ¥å£ç”¨æ¥è¯»å…¥å­—ç¬¦å¹¶ä¸”è¿”å›å¯¹åº”çš„æ ‡ç­¾ã€‚
+  åœ¨æ¥å£ä¸­æˆ‘ä»¬å…ˆé€šè¿‡exprHanderè·å¾—å·²ç»å¤„ç†å¥½çš„æ­£åˆ™è¡¨è¾¾å¼å­—ç¬¦ä¸²ï¼Œä¾æ¬¡ä»ä»¥è·å–å¥½çš„ä¸­å–å‡ºï¼Œ
+  å¹¶é€ä¸ªè§£æ
   * 
   * 
 	*/
 	public Token advance() {
-//ÉèÖÃÎªEOS,¿ªÊ¼»ñÈ¡ÕıÔò±í´ïÊ½£¬Èç([0-9]+)Õâ¸ö´ÓexprHandlerÄÃµ½µÄ±»ºê¶¨Òå´¦ÀíºÃµÄ±í´ïÊ½
+//è®¾ç½®ä¸ºEOS,å¼€å§‹è·å–æ­£åˆ™è¡¨è¾¾å¼ï¼Œå¦‚([0-9]+)è¿™ä¸ªä»exprHandleræ‹¿åˆ°çš„è¢«å®å®šä¹‰å¤„ç†å¥½çš„è¡¨è¾¾å¼
 	if(currentToken ==Token.EOS) {
-	//2 Èç¹ûµ±Ç°±êÇ©ÊÇEOS,Ò»¸öÕıÔò±í´ïÊ½½âÎö½áÊøºó¶ÁÈëÏÂÒ»¸ö±í´ïÊ½
+	//2 å¦‚æœå½“å‰æ ‡ç­¾æ˜¯EOS,ä¸€ä¸ªæ­£åˆ™è¡¨è¾¾å¼è§£æç»“æŸåè¯»å…¥ä¸‹ä¸€ä¸ªè¡¨è¾¾å¼
     if (exprCount >= exprHandler.getRegularExpressionCount()) {
-	//ËùÓĞÕıÔò±í´ïÊ½½âÎöÍê³É 
-	currentToken=Token.END_OF_INPUT;//END_OF_INPUT ÊäÈëÁ÷½è½áÊø
+	//æ‰€æœ‰æ­£åˆ™è¡¨è¾¾å¼è§£æå®Œæˆ 
+	currentToken=Token.END_OF_INPUT;//END_OF_INPUT è¾“å…¥æµå€Ÿç»“æŸ
 	        return currentToken;
         }else {
-        	curExpr = exprHandler.getRegularExpression(exprCount);//¸³Öµ
+        	curExpr = exprHandler.getRegularExpression(exprCount);//èµ‹å€¼
 			exprCount++;
         }
 	}
-	// 1 µ±×Ö·ûÏÂ±ê>×Ö·û´®±í´ïÊ½³¤¶ÈÊ±£¬±íÊ¾µ±Ç°×Ö·û´®½âÎöÍê±Ï
+	// 1 å½“å­—ç¬¦ä¸‹æ ‡>å­—ç¬¦ä¸²è¡¨è¾¾å¼é•¿åº¦æ—¶ï¼Œè¡¨ç¤ºå½“å‰å­—ç¬¦ä¸²è§£æå®Œæ¯•
 	if (charIndex >= curExpr.length()) {
 		currentToken = Token.EOS;
 		charIndex = 0;
 		return currentToken; 
 	}
 		
-//Óöµ½Ë«ÒıºÅ×ö±ê¼Ç ¡£ charAt£¨) ·½·¨¿É·µ»ØÖ¸¶¨Î»ÖÃµÄ×Ö·û,µÚÒ»¸ö×Ö·ûÎ»ÖÃÎª 0, µÚ¶ş¸ö×Ö·ûÎ»ÖÃÎª 1,ÒÔ´ËÀàÍÆ.Èç¡®abc¡¯×Ö·û´®,aµÄÏÂ±êÊÇ0£¬b1£¬c3
+//é‡åˆ°åŒå¼•å·åšæ ‡è®° ã€‚ charAtï¼ˆ) æ–¹æ³•å¯è¿”å›æŒ‡å®šä½ç½®çš„å­—ç¬¦,ç¬¬ä¸€ä¸ªå­—ç¬¦ä½ç½®ä¸º 0, ç¬¬äºŒä¸ªå­—ç¬¦ä½ç½®ä¸º 1,ä»¥æ­¤ç±»æ¨.å¦‚â€˜abcâ€™å­—ç¬¦ä¸²,açš„ä¸‹æ ‡æ˜¯0ï¼Œb1ï¼Œc3
 	
 	if (curExpr.charAt(charIndex) == '"') {
-		inQuoted = !inQuoted; //false-true-flase Ñ­»·¹ı³Ì
+		inQuoted = !inQuoted; //false-true-flase å¾ªç¯è¿‡ç¨‹
 		charIndex++;
 	}
 	
 
 
-	sawEsc = (curExpr.charAt(charIndex) == '\\'); //µ±Ç°±»½âÎö×Ö·û´®µÄÏÂ±êÓëËüºóÃæÒ»¸ö(ºóÒ»¸öÊÇ²»ÊÇ'ÒıºÅ£¬²»ÊÇ¾Í½«Á½¸öÁ¬ÔÚÒ»Æğ
+	sawEsc = (curExpr.charAt(charIndex) == '\\'); //å½“å‰è¢«è§£æå­—ç¬¦ä¸²çš„ä¸‹æ ‡ä¸å®ƒåé¢ä¸€ä¸ª(åä¸€ä¸ªæ˜¯ä¸æ˜¯'å¼•å·ï¼Œä¸æ˜¯å°±å°†ä¸¤ä¸ªè¿åœ¨ä¸€èµ·
 	if (sawEsc && curExpr.charAt(charIndex + 1) != '"' && inQuoted == false) {
 		lexeme = handleEsc();
 	}
@@ -117,55 +117,55 @@ public class Lexer {
 		}
 		else {
 			lexeme = curExpr.charAt(charIndex);
-			charIndex++;//µÃµ½¶ÔÓ¦µÄasciiÖµ
+			charIndex++;//å¾—åˆ°å¯¹åº”çš„asciiå€¼
 		}
 	}
 	
-	//µ±Ç°½âÎö×Ö·ûÊÇ·ñÔÚË«ÒıºÅÄÚ»òÇ°ÃæÊÇ×ªÒå·û¡ª¡ª¶¼±»µ±³ÉÆÕÍ¨×Ö·û´¦Àí(·µ»ØL)£¬²»È»¾ÍÔÚtokenMapÑ°ÕÒÏà¶ÔÓ¦µÄ±êÇ©Öµ
-	currentToken = (inQuoted || sawEsc) ? Token.L : tokenMap[lexeme]; //lexeme´æ´¢µÄÊÇµ±Ç°×Ö·ûµÄÖµ
+	//å½“å‰è§£æå­—ç¬¦æ˜¯å¦åœ¨åŒå¼•å·å†…æˆ–å‰é¢æ˜¯è½¬ä¹‰ç¬¦â€”â€”éƒ½è¢«å½“æˆæ™®é€šå­—ç¬¦å¤„ç†(è¿”å›L)ï¼Œä¸ç„¶å°±åœ¨tokenMapå¯»æ‰¾ç›¸å¯¹åº”çš„æ ‡ç­¾å€¼
+	currentToken = (inQuoted || sawEsc) ? Token.L : tokenMap[lexeme]; //lexemeå­˜å‚¨çš„æ˜¯å½“å‰å­—ç¬¦çš„å€¼
 	
 	return currentToken;
 
 	}
-  //È»ºóÌøµ½ThompsonConstruction µÄ·½·¨ÖĞ£¬ÈçpritlnResult´òÓ¡½á¹û/
+  //ç„¶åè·³åˆ°ThompsonConstruction çš„æ–¹æ³•ä¸­ï¼Œå¦‚pritlnResultæ‰“å°ç»“æœ/
 
 	
 	
-  //Óöµ½·´Ğ±¸ÜÌØÊâ´¦Àí£¬¶Ô×ªÒå×Ö·ûÌØË×´¦ÀíµÄº¯Êı£ºhandleEsc
+  //é‡åˆ°åæ–œæ ç‰¹æ®Šå¤„ç†ï¼Œå¯¹è½¬ä¹‰å­—ç¬¦ç‰¹ä¿—å¤„ç†çš„å‡½æ•°ï¼šhandleEsc
 	
 	private int handleEsc() {
-    	/*µ±×ªÒÆ·û \ ´æÔÚÊ±£¬Ëü±ØĞëÓë¸úÔÚËüºóÃæµÄ×Ö·û»ò×Ö·û´®Ò»Æğ½â¶Á
-    	 *ÎÒÃÇ´¦ÀíµÄ×ªÒå×Ö·ûÓĞÒÔÏÂ¼¸ÖÖĞÎÊ½
-    	 * \b backspace É¾³ı
+    	/*å½“è½¬ç§»ç¬¦ \ å­˜åœ¨æ—¶ï¼Œå®ƒå¿…é¡»ä¸è·Ÿåœ¨å®ƒåé¢çš„å­—ç¬¦æˆ–å­—ç¬¦ä¸²ä¸€èµ·è§£è¯»
+    	 *æˆ‘ä»¬å¤„ç†çš„è½¬ä¹‰å­—ç¬¦æœ‰ä»¥ä¸‹å‡ ç§å½¢å¼
+    	 * \b backspace åˆ é™¤
     	 * \f formfeed
-    	 * \n newline »»ĞĞ
-    	 * \r carriage return »Ø³µ
-    	 * \s space ¿Õ¸ñ
+    	 * \n newline æ¢è¡Œ
+    	 * \r carriage return å›è½¦
+    	 * \s space ç©ºæ ¼
     	 * \t tab
     	 * \e ASCII ESC ('\033')
-    	 * \DDD 3Î»°Ë½øÖÆÊı
-    	 * \xDDD 3Î»Ê®Áù½øÖÆÊı
-    	 * \^C CÊÇÈÎºÎ×Ö·û£¬ ÀıÈç^A, ^B ÔÚAscii ±íÖĞ¶¼ÓĞ¶ÔÓ¦µÄÌØÊâº¬Òå
-    	 * ASCII ×Ö·û±í²Î¼û£º
+    	 * \DDD 3ä½å…«è¿›åˆ¶æ•°
+    	 * \xDDD 3ä½åå…­è¿›åˆ¶æ•°
+    	 * \^C Cæ˜¯ä»»ä½•å­—ç¬¦ï¼Œ ä¾‹å¦‚^A, ^B åœ¨Ascii è¡¨ä¸­éƒ½æœ‰å¯¹åº”çš„ç‰¹æ®Šå«ä¹‰
+    	 * ASCII å­—ç¬¦è¡¨å‚è§ï¼š
     	 * http://baike.baidu.com/pic/%E7%BE%8E%E5%9B%BD%E4%BF%A1%E6%81%AF%E4%BA%A4%E6%8D%A2%E6%A0%87%E5%87%86%E4%BB%A3%E7%A0%81/8950990/0/9213b07eca8065387d4c671896dda144ad348213?fr=lemma&ct=single#aid=0&pic=9213b07eca8065387d4c671896dda144ad348213
     	 */
 	
   int rval = 0;
-  String exprToUpper=curExpr.toUpperCase();//toUpperCase() ·½·¨ÓÃÓÚ½«Ğ¡Ğ´×Ö·û×ª»»Îª´óĞ´¡£
-  charIndex++; //Ô½¹ı×ªÒÆ·û \	
-  //×Ö·û´®¸ù¾İÏÂ±ê»ñÈ¡µÄ,×ª»»Îª´óĞ´µÄ×Ö·û´®£¬×÷ÎªswitchµÄ±í´ïÊ½
+  String exprToUpper=curExpr.toUpperCase();//toUpperCase() æ–¹æ³•ç”¨äºå°†å°å†™å­—ç¬¦è½¬æ¢ä¸ºå¤§å†™ã€‚
+  charIndex++; //è¶Šè¿‡è½¬ç§»ç¬¦ \	
+  //å­—ç¬¦ä¸²æ ¹æ®ä¸‹æ ‡è·å–çš„,è½¬æ¢ä¸ºå¤§å†™çš„å­—ç¬¦ä¸²ï¼Œä½œä¸ºswitchçš„è¡¨è¾¾å¼
   switch (exprToUpper.charAt(charIndex)) {
   case '\0' : 
-	  rval = '\\'; //Ã¿¸öcase±íÊ¾²»Í¬µÄÇé¿ö
+	  rval = '\\'; //æ¯ä¸ªcaseè¡¨ç¤ºä¸åŒçš„æƒ…å†µ
 	  break;
 case 'B': 
-	  rval = '\b';//½âÎöµ½B£¬½«'\b'µÄasciiÖµ¸³Öµ¸ørval
+	  rval = '\b';//è§£æåˆ°Bï¼Œå°†'\b'çš„asciiå€¼èµ‹å€¼ç»™rval
 	  break;
 case 'F':
 	  rval = '\f';
 	  break;
 case 'N' :
-	  rval = '\n';  // \n¶ÔÓ¦µÄasciiÖµÎª10 ¸³Öµ¸øN
+	  rval = '\n';  // \nå¯¹åº”çš„asciiå€¼ä¸º10 èµ‹å€¼ç»™N
 	  break;
 case 'R' :
 	  rval = '\r';
@@ -182,19 +182,19 @@ case 'E' :
 case '^':
 	  charIndex++;
 	  /*
-	   * Òò´Ëµ±Óöµ½^ºóÃæ¸úÔÚÒ»¸ö×ÖÄ¸Ê±£¬±íÊ¾¶ÁÈëµÄÊÇ¿ØÖÆ×Ö·û
-	   * ^@ ÔÚASCII ±íÖĞµÄÊıÖµÎª0£¬^A Îª1, ×Ö·û@ÔÚASCII ±íÖĞÊıÖµÎª80£¬ ×Ö·ûAÔÚASCII±íÖĞÊıÖµÎª81
-	   * 'A' - '@' µÈÓÚ1 ¾Í¶ÔÓ¦ ^A ÔÚ ASCII ±íÖĞµÄÎ»ÖÃ
-	   * ¾ßÌå¿É²Î¿´×¢ÊÍ¸ø³öµÄASCII Í¼
+	   * å› æ­¤å½“é‡åˆ°^åé¢è·Ÿåœ¨ä¸€ä¸ªå­—æ¯æ—¶ï¼Œè¡¨ç¤ºè¯»å…¥çš„æ˜¯æ§åˆ¶å­—ç¬¦
+	   * ^@ åœ¨ASCII è¡¨ä¸­çš„æ•°å€¼ä¸º0ï¼Œ^A ä¸º1, å­—ç¬¦@åœ¨ASCII è¡¨ä¸­æ•°å€¼ä¸º80ï¼Œ å­—ç¬¦Aåœ¨ASCIIè¡¨ä¸­æ•°å€¼ä¸º81
+	   * 'A' - '@' ç­‰äº1 å°±å¯¹åº” ^A åœ¨ ASCII è¡¨ä¸­çš„ä½ç½®
+	   * å…·ä½“å¯å‚çœ‹æ³¨é‡Šç»™å‡ºçš„ASCII å›¾
 	   * 
 	   */
 	  rval = (char) (curExpr.charAt(charIndex) - '@');
 	  break;
 case 'X':
 	/*
-	 * \X ±íÊ¾ºóÃæ¸ú×ÅµÄÈı¸ö×Ö·û±íÊ¾°Ë½øÖÆ»òÊ®Áù½øÖÆÊı
+	 * \X è¡¨ç¤ºåé¢è·Ÿç€çš„ä¸‰ä¸ªå­—ç¬¦è¡¨ç¤ºå…«è¿›åˆ¶æˆ–åå…­è¿›åˆ¶æ•°
 	 */
-	charIndex++; //Ô½¹ıX
+	charIndex++; //è¶Šè¿‡X
 	if (isHexDigit(curExpr.charAt(charIndex))) {
 		rval = hex2Bin(curExpr.charAt(charIndex));
 		charIndex++;
@@ -211,7 +211,7 @@ case 'X':
 		rval |= hex2Bin(curExpr.charAt(charIndex));
 		charIndex++;
 	}
-	charIndex--; //ÓÉÓÚÔÚº¯Êıµ×²¿»á¶ÔcharIndex++ ËùÒÔÕâÀïÏÈ --
+	charIndex--; //ç”±äºåœ¨å‡½æ•°åº•éƒ¨ä¼šå¯¹charIndex++ æ‰€ä»¥è¿™é‡Œå…ˆ --
 	break;
 	
 	default:
@@ -234,7 +234,7 @@ case 'X':
 				charIndex++;
 			}
 			
-			charIndex--;//ÓÉÓÚÔÚº¯Êıµ×²¿»á¶ÔcharIndex++ ËùÒÔÕâÀïÏÈ --
+			charIndex--;//ç”±äºåœ¨å‡½æ•°åº•éƒ¨ä¼šå¯¹charIndex++ æ‰€ä»¥è¿™é‡Œå…ˆ --
 		}		
 }
 
@@ -243,17 +243,17 @@ return rval;
 }
 	  private int hex2Bin(char c) {
 	    	/*
-	    	 * ½«Ê®Áù½øÖÆÊı¶ÔÓ¦µÄ×Ö·û×ª»»Îª¶ÔÓ¦µÄÊıÖµ£¬ÀıÈç
-	    	 * A ×ª»»Îª10£¬ B×ª»»Îª11
-	    	 * ×Ö·ûc ±ØĞëÂú×ãÊ®Áù½øÖÆ×Ö·û£º 0123456789ABCDEF
+	    	 * å°†åå…­è¿›åˆ¶æ•°å¯¹åº”çš„å­—ç¬¦è½¬æ¢ä¸ºå¯¹åº”çš„æ•°å€¼ï¼Œä¾‹å¦‚
+	    	 * A è½¬æ¢ä¸º10ï¼Œ Bè½¬æ¢ä¸º11
+	    	 * å­—ç¬¦c å¿…é¡»æ»¡è¶³åå…­è¿›åˆ¶å­—ç¬¦ï¼š 0123456789ABCDEF
 	    	 */
 	    	return (Character.isDigit(c) ? (c) - '0' : (Character.toUpperCase(c) - 'A' + 10)) & 0xf;
 	    }
 	    
 	    private int oct2Bin(char c) {
 	    	/*
-	    	 * ½«×Ö·ûc ×ª»»Îª¶ÔÓ¦µÄ°Ë½øÖÆÊı
-	    	 * ×Ö·ûc ±ØĞëÊÇºÏ·¨µÄ°Ë½øÖÆ×Ö·û: 01234567
+	    	 * å°†å­—ç¬¦c è½¬æ¢ä¸ºå¯¹åº”çš„å…«è¿›åˆ¶æ•°
+	    	 * å­—ç¬¦c å¿…é¡»æ˜¯åˆæ³•çš„å…«è¿›åˆ¶å­—ç¬¦: 01234567
 	    	 */
 	    	return ((c) - '0') & 0x7;
 	    }
